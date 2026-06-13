@@ -25,6 +25,7 @@ type Router struct {
 	notifHandler         *handler.NotificationHandler
 	analyticsHandler     *handler.AnalyticsHandler
 	collectorAppHandler  *handler.CollectorApplicationHandler
+	userHandler          *handler.UserHandler
 
 	authMW        *middleware.AuthMiddleware
 }
@@ -42,6 +43,7 @@ func New(
 	notifHandler *handler.NotificationHandler,
 	analyticsHandler *handler.AnalyticsHandler,
 	collectorAppHandler *handler.CollectorApplicationHandler,
+	userHandler *handler.UserHandler,
 ) *Router {
 	return &Router{
 		e:                   e,
@@ -56,6 +58,7 @@ func New(
 		notifHandler:        notifHandler,
 		analyticsHandler:    analyticsHandler,
 		collectorAppHandler: collectorAppHandler,
+		userHandler:         userHandler,
 		authMW:              middleware.NewAuthMiddleware(jwtService, log),
 	}
 }
@@ -84,6 +87,7 @@ func (r *Router) Setup() {
 
 	r.setupAuthRoutes()
 	r.setupAdminRoutes()
+	r.setupUserRoutes()
 	r.setupPickupRoutes()
 	r.setupWasteReportRoutes()
 	r.setupRewardRoutes()
@@ -128,6 +132,16 @@ func (r *Router) setupCollectorApplicationRoutes() {
 
 	apps.POST("", r.collectorAppHandler.Submit)
 	apps.GET("/mine", r.collectorAppHandler.ListMine)
+}
+
+func (r *Router) setupUserRoutes() {
+	users := r.e.Group("/api/v1/users")
+	users.Use(r.authMW.Authenticate)
+
+	users.GET("/me", r.userHandler.GetProfile)
+	users.PUT("/me", r.userHandler.UpdateProfile)
+	users.PUT("/me/password", r.userHandler.ChangePassword)
+	users.POST("/me/avatar", r.userHandler.UploadAvatar)
 }
 
 func (r *Router) setupPickupRoutes() {

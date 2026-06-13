@@ -68,6 +68,7 @@ func main() {
 	notifUseCase := ucaseimpl.NewNotificationUseCase(notifRepo, log)
 	analyticsUseCase := ucaseimpl.NewAnalyticsUseCase(analyticsRepo, log)
 	collectorAppUseCase := ucaseimpl.NewCollectorApplicationUseCase(collectorAppRepo, userRepo, roleRepo, log)
+	userUseCase := ucaseimpl.NewUserUseCase(userRepo, log)
 
 	authHandler := handler.NewAuthHandler(authUseCase, log)
 	adminHandler := handler.NewAdminHandler(adminUseCase, log)
@@ -78,10 +79,11 @@ func main() {
 	notifHandler := handler.NewNotificationHandler(notifUseCase, log)
 	analyticsHandler := handler.NewAnalyticsHandler(analyticsUseCase, log)
 	collectorAppHandler := handler.NewCollectorApplicationHandler(collectorAppUseCase, log)
+	userHandler := handler.NewUserHandler(userUseCase, log)
 
 	e := echo.New()
 
-	r := router.New(e, log, jwtService, authHandler, adminHandler, pickupHandler, reportHandler, rewardHandler, educationHandler, notifHandler, analyticsHandler, collectorAppHandler)
+	r := router.New(e, log, jwtService, authHandler, adminHandler, pickupHandler, reportHandler, rewardHandler, educationHandler, notifHandler, analyticsHandler, collectorAppHandler, userHandler)
 	r.Setup()
 
 	addr := fmt.Sprintf(":%s", cfg.Server.Port)
