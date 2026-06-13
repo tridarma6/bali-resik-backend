@@ -21,6 +21,7 @@ type Router struct {
 	rewardHandler     *handler.RewardHandler
 	educationHandler  *handler.EducationHandler
 	notifHandler      *handler.NotificationHandler
+	analyticsHandler  *handler.AnalyticsHandler
 
 	authMW        *middleware.AuthMiddleware
 }
@@ -36,6 +37,7 @@ func New(
 	rewardHandler *handler.RewardHandler,
 	educationHandler *handler.EducationHandler,
 	notifHandler *handler.NotificationHandler,
+	analyticsHandler *handler.AnalyticsHandler,
 ) *Router {
 	return &Router{
 		e:                e,
@@ -48,6 +50,7 @@ func New(
 		rewardHandler:    rewardHandler,
 		educationHandler: educationHandler,
 		notifHandler:     notifHandler,
+		analyticsHandler: analyticsHandler,
 		authMW:           middleware.NewAuthMiddleware(jwtService, log),
 	}
 }
@@ -74,6 +77,7 @@ func (r *Router) Setup() {
 	r.setupRewardRoutes()
 	r.setupEducationRoutes()
 	r.setupNotificationRoutes()
+	r.setupAnalyticsRoutes()
 }
 
 func (r *Router) setupAuthRoutes() {
@@ -166,4 +170,16 @@ func (r *Router) setupNotificationRoutes() {
 	notifs.PUT("/:id/read", r.notifHandler.MarkAsRead)
 	notifs.PUT("/read-all", r.notifHandler.MarkAllAsRead)
 	notifs.DELETE("/:id", r.notifHandler.Delete)
+}
+
+func (r *Router) setupAnalyticsRoutes() {
+	analytics := r.e.Group("/api/v1/analytics")
+	analytics.Use(r.authMW.Authenticate)
+
+	analytics.GET("/dashboard", r.analyticsHandler.GetDashboard, middleware.RequireRoles("admin_kabupaten", "super_admin"))
+
+	r.e.GET("/api/v1/admin/regional-stats", r.analyticsHandler.GetRegionalStats,
+		r.authMW.Authenticate,
+		middleware.RequireRoles("super_admin"),
+	)
 }

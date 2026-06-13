@@ -56,6 +56,7 @@ func main() {
 	txRepo := repoimpl.NewRewardTransactionRepository(db)
 	eduRepo := repoimpl.NewEducationRepository(db)
 	notifRepo := repoimpl.NewNotificationRepository(db)
+	analyticsRepo := repoimpl.NewAnalyticsRepository(db)
 
 	authUseCase := ucaseimpl.NewAuthUseCase(userRepo, tenantRepo, roleRepo, refreshTokenRepo, jwtService, log)
 	adminUseCase := ucaseimpl.NewAdminUseCase(tenantRepo, userRepo, roleRepo, log)
@@ -64,6 +65,7 @@ func main() {
 	rewardUseCase := ucaseimpl.NewRewardUseCase(rewardRepo, txRepo, log)
 	eduUseCase := ucaseimpl.NewEducationUseCase(eduRepo, log)
 	notifUseCase := ucaseimpl.NewNotificationUseCase(notifRepo, log)
+	analyticsUseCase := ucaseimpl.NewAnalyticsUseCase(analyticsRepo, log)
 
 	authHandler := handler.NewAuthHandler(authUseCase, log)
 	adminHandler := handler.NewAdminHandler(adminUseCase, log)
@@ -72,10 +74,11 @@ func main() {
 	rewardHandler := handler.NewRewardHandler(rewardUseCase, log)
 	educationHandler := handler.NewEducationHandler(eduUseCase, log)
 	notifHandler := handler.NewNotificationHandler(notifUseCase, log)
+	analyticsHandler := handler.NewAnalyticsHandler(analyticsUseCase, log)
 
 	e := echo.New()
 
-	r := router.New(e, log, jwtService, authHandler, adminHandler, pickupHandler, reportHandler, rewardHandler, educationHandler, notifHandler)
+	r := router.New(e, log, jwtService, authHandler, adminHandler, pickupHandler, reportHandler, rewardHandler, educationHandler, notifHandler, analyticsHandler)
 	r.Setup()
 
 	addr := fmt.Sprintf(":%s", cfg.Server.Port)
