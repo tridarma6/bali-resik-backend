@@ -55,6 +55,7 @@ func main() {
 	rewardRepo := repoimpl.NewRewardRepository(db)
 	txRepo := repoimpl.NewRewardTransactionRepository(db)
 	eduRepo := repoimpl.NewEducationRepository(db)
+	notifRepo := repoimpl.NewNotificationRepository(db)
 
 	authUseCase := ucaseimpl.NewAuthUseCase(userRepo, tenantRepo, roleRepo, refreshTokenRepo, jwtService, log)
 	adminUseCase := ucaseimpl.NewAdminUseCase(tenantRepo, userRepo, roleRepo, log)
@@ -62,6 +63,7 @@ func main() {
 	reportUseCase := ucaseimpl.NewWasteReportUseCase(reportRepo, userRepo, log)
 	rewardUseCase := ucaseimpl.NewRewardUseCase(rewardRepo, txRepo, log)
 	eduUseCase := ucaseimpl.NewEducationUseCase(eduRepo, log)
+	notifUseCase := ucaseimpl.NewNotificationUseCase(notifRepo, log)
 
 	authHandler := handler.NewAuthHandler(authUseCase, log)
 	adminHandler := handler.NewAdminHandler(adminUseCase, log)
@@ -69,10 +71,11 @@ func main() {
 	reportHandler := handler.NewWasteReportHandler(reportUseCase, log)
 	rewardHandler := handler.NewRewardHandler(rewardUseCase, log)
 	educationHandler := handler.NewEducationHandler(eduUseCase, log)
+	notifHandler := handler.NewNotificationHandler(notifUseCase, log)
 
 	e := echo.New()
 
-	r := router.New(e, log, jwtService, authHandler, adminHandler, pickupHandler, reportHandler, rewardHandler, educationHandler)
+	r := router.New(e, log, jwtService, authHandler, adminHandler, pickupHandler, reportHandler, rewardHandler, educationHandler, notifHandler)
 	r.Setup()
 
 	addr := fmt.Sprintf(":%s", cfg.Server.Port)
@@ -98,6 +101,7 @@ func runMigrations(db *gorm.DB, log *logrus.Logger) {
 		&models.Reward{},
 		&models.RewardTransaction{},
 		&models.EducationalContent{},
+		&models.Notification{},
 	); err != nil {
 		log.WithError(err).Fatal("failed to run database migrations")
 	}

@@ -20,6 +20,7 @@ type Router struct {
 	reportHandler     *handler.WasteReportHandler
 	rewardHandler     *handler.RewardHandler
 	educationHandler  *handler.EducationHandler
+	notifHandler      *handler.NotificationHandler
 
 	authMW        *middleware.AuthMiddleware
 }
@@ -34,6 +35,7 @@ func New(
 	reportHandler *handler.WasteReportHandler,
 	rewardHandler *handler.RewardHandler,
 	educationHandler *handler.EducationHandler,
+	notifHandler *handler.NotificationHandler,
 ) *Router {
 	return &Router{
 		e:                e,
@@ -45,6 +47,7 @@ func New(
 		reportHandler:    reportHandler,
 		rewardHandler:    rewardHandler,
 		educationHandler: educationHandler,
+		notifHandler:     notifHandler,
 		authMW:           middleware.NewAuthMiddleware(jwtService, log),
 	}
 }
@@ -70,6 +73,7 @@ func (r *Router) Setup() {
 	r.setupWasteReportRoutes()
 	r.setupRewardRoutes()
 	r.setupEducationRoutes()
+	r.setupNotificationRoutes()
 }
 
 func (r *Router) setupAuthRoutes() {
@@ -151,4 +155,15 @@ func (r *Router) setupEducationRoutes() {
 	adminEducation.POST("", r.educationHandler.Create)
 	adminEducation.PUT("/:id", r.educationHandler.Update)
 	adminEducation.DELETE("/:id", r.educationHandler.Delete)
+}
+
+func (r *Router) setupNotificationRoutes() {
+	notifs := r.e.Group("/api/v1/notifications")
+	notifs.Use(r.authMW.Authenticate)
+
+	notifs.GET("", r.notifHandler.List)
+	notifs.GET("/unread-count", r.notifHandler.GetUnreadCount)
+	notifs.PUT("/:id/read", r.notifHandler.MarkAsRead)
+	notifs.PUT("/read-all", r.notifHandler.MarkAllAsRead)
+	notifs.DELETE("/:id", r.notifHandler.Delete)
 }
