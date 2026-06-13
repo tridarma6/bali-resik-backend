@@ -6,26 +6,46 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/indim/bali-resik-backend/internal/auth"
+	"github.com/indim/bali-resik-backend/internal/handler"
 	"github.com/indim/bali-resik-backend/internal/middleware"
 )
 
 type Router struct {
-	e          *echo.Echo
-	log        *logrus.Logger
-	jwtService auth.JWTService
-	authMW     *middleware.AuthMiddleware
+	e                 *echo.Echo
+	log               *logrus.Logger
+	jwtService        auth.JWTService
+	authHandler       *handler.AuthHandler
+	adminHandler      *handler.AdminHandler
+	pickupHandler     *handler.PickupHandler
+	reportHandler     *handler.WasteReportHandler
+	rewardHandler     *handler.RewardHandler
+	educationHandler  *handler.EducationHandler
+
+	authMW        *middleware.AuthMiddleware
 }
 
 func New(
 	e *echo.Echo,
 	log *logrus.Logger,
 	jwtService auth.JWTService,
+	authHandler *handler.AuthHandler,
+	adminHandler *handler.AdminHandler,
+	pickupHandler *handler.PickupHandler,
+	reportHandler *handler.WasteReportHandler,
+	rewardHandler *handler.RewardHandler,
+	educationHandler *handler.EducationHandler,
 ) *Router {
 	return &Router{
-		e:          e,
-		log:        log,
-		jwtService: jwtService,
-		authMW:     middleware.NewAuthMiddleware(jwtService, log),
+		e:                e,
+		log:              log,
+		jwtService:       jwtService,
+		authHandler:      authHandler,
+		adminHandler:     adminHandler,
+		pickupHandler:    pickupHandler,
+		reportHandler:    reportHandler,
+		rewardHandler:    rewardHandler,
+		educationHandler: educationHandler,
+		authMW:           middleware.NewAuthMiddleware(jwtService, log),
 	}
 }
 
@@ -44,33 +64,91 @@ func (r *Router) Setup() {
 		})
 	})
 
-	r.SetupAuthRoutes()
-	r.SetupAdminRoutes()
+	r.setupAuthRoutes()
+	r.setupAdminRoutes()
+	r.setupPickupRoutes()
+	r.setupWasteReportRoutes()
+	r.setupRewardRoutes()
+	r.setupEducationRoutes()
 }
 
-func (r *Router) SetupAuthRoutes() {
+func (r *Router) setupAuthRoutes() {
 	api := r.e.Group("/api/v1")
 
-	api.POST("/auth/login", func(c echo.Context) error {
-		return c.JSON(501, map[string]string{"message": "Not implemented yet"})
-	})
-	api.POST("/auth/register", func(c echo.Context) error {
-		return c.JSON(501, map[string]string{"message": "Not implemented yet"})
-	})
-	api.POST("/auth/refresh", func(c echo.Context) error {
-		return c.JSON(501, map[string]string{"message": "Not implemented yet"})
-	})
-	api.POST("/auth/logout", func(c echo.Context) error {
-		return c.JSON(501, map[string]string{"message": "Not implemented yet"})
-	})
+	api.POST("/auth/register", r.authHandler.Register)
+	api.POST("/auth/login", r.authHandler.Login)
+	api.POST("/auth/refresh", r.authHandler.RefreshToken)
+
+	authGroup := api.Group("")
+	authGroup.Use(r.authMW.Authenticate)
+	authGroup.POST("/auth/logout", r.authHandler.Logout)
 }
 
-func (r *Router) SetupAdminRoutes() {
+func (r *Router) setupAdminRoutes() {
 	admin := r.e.Group("/api/v1/admin")
 	admin.Use(r.authMW.Authenticate)
 	admin.Use(middleware.RequireRoles("super_admin"))
 
-	admin.GET("/tenants", func(c echo.Context) error {
-		return c.JSON(501, map[string]string{"message": "Not implemented yet"})
-	})
+	admin.POST("/tenants", r.adminHandler.CreateTenant)
+	admin.GET("/tenants", r.adminHandler.ListTenants)
+	admin.POST("/admins", r.adminHandler.CreateAdmin)
+}
+
+func (r *Router) setupPickupRoutes() {
+	pickups := r.e.Group("/api/v1/pickups")
+	pickups.Use(r.authMW.Authenticate)
+
+	pickups.POST("", r.pickupHandler.Create, middleware.RequireRoles("citizen"))
+	pickups.GET("/mine", r.pickupHandler.ListMine, middleware.RequireRoles("citizen"))
+	pickups.GET("/assigned", r.pickupHandler.ListAssigned, middleware.RequireRoles("collector"))
+	pickups.GET("", r.pickupHandler.List, middleware.RequireRoles("admin_kabupaten", "super_admin"))
+	pickups.GET("/:id", r.pickupHandler.GetByID)
+	pickups.PUT("/:id/assign", r.pickupHandler.AssignCollector, middleware.RequireRoles("admin_kabupaten", "super_admin"))
+	pickups.PUT("/:id/status", r.pickupHandler.UpdateStatus, middleware.RequireRoles("collector", "admin_kabupaten"))
+	pickups.DELETE("/:id", r.pickupHandler.Cancel)
+}
+
+func (r *Router) setupWasteReportRoutes() {
+	reports := r.e.Group("/api/v1/reports")
+	reports.Use(r.authMW.Authenticate)
+
+	reports.POST("", r.reportHandler.Create, middleware.RequireRoles("citizen"))
+	reports.GET("/mine", r.reportHandler.ListMine, middleware.RequireRoles("citizen"))
+	reports.GET("/nearby", r.reportHandler.FindNearby)
+	reports.GET("", r.reportHandler.List, middleware.RequireRoles("admin_kabupaten", "super_admin"))
+	reports.GET("/:id", r.reportHandler.GetByID)
+	reports.PUT("/:id/status", r.reportHandler.UpdateStatus, middleware.RequireRoles("admin_kabupaten"))
+	reports.POST("/:id/images", r.reportHandler.UploadImage)
+}
+
+func (r *Router) setupRewardRoutes() {
+	rewards := r.e.Group("/api/v1/rewards")
+	rewards.Use(r.authMW.Authenticate)
+
+	rewards.GET("", r.rewardHandler.List)
+	rewards.GET("/points", r.rewardHandler.GetPoints)
+	rewards.GET("/transactions", r.rewardHandler.GetTransactions)
+	rewards.POST("/redeem", r.rewardHandler.Redeem, middleware.RequireRoles("citizen"))
+
+	adminRewards := r.e.Group("/api/v1/rewards")
+	adminRewards.Use(r.authMW.Authenticate)
+	adminRewards.Use(middleware.RequireRoles("admin_kabupaten", "super_admin"))
+	adminRewards.POST("", r.rewardHandler.Create)
+	adminRewards.PUT("/:id", r.rewardHandler.Update)
+	adminRewards.DELETE("/:id", r.rewardHandler.Delete)
+}
+
+func (r *Router) setupEducationRoutes() {
+	education := r.e.Group("/api/v1/education")
+	education.Use(r.authMW.Authenticate)
+
+	education.GET("", r.educationHandler.List)
+	education.GET("/:id", r.educationHandler.GetByID)
+
+	adminEducation := r.e.Group("/api/v1/education")
+	adminEducation.Use(r.authMW.Authenticate)
+	adminEducation.Use(middleware.RequireRoles("admin_kabupaten", "super_admin"))
+	adminEducation.POST("", r.educationHandler.Create)
+	adminEducation.PUT("/:id", r.educationHandler.Update)
+	adminEducation.DELETE("/:id", r.educationHandler.Delete)
 }
