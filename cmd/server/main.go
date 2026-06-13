@@ -57,6 +57,7 @@ func main() {
 	eduRepo := repoimpl.NewEducationRepository(db)
 	notifRepo := repoimpl.NewNotificationRepository(db)
 	analyticsRepo := repoimpl.NewAnalyticsRepository(db)
+	collectorAppRepo := repoimpl.NewCollectorApplicationRepository(db)
 
 	authUseCase := ucaseimpl.NewAuthUseCase(userRepo, tenantRepo, roleRepo, refreshTokenRepo, jwtService, log)
 	adminUseCase := ucaseimpl.NewAdminUseCase(tenantRepo, userRepo, roleRepo, log)
@@ -66,6 +67,7 @@ func main() {
 	eduUseCase := ucaseimpl.NewEducationUseCase(eduRepo, log)
 	notifUseCase := ucaseimpl.NewNotificationUseCase(notifRepo, log)
 	analyticsUseCase := ucaseimpl.NewAnalyticsUseCase(analyticsRepo, log)
+	collectorAppUseCase := ucaseimpl.NewCollectorApplicationUseCase(collectorAppRepo, userRepo, roleRepo, log)
 
 	authHandler := handler.NewAuthHandler(authUseCase, log)
 	adminHandler := handler.NewAdminHandler(adminUseCase, log)
@@ -75,10 +77,11 @@ func main() {
 	educationHandler := handler.NewEducationHandler(eduUseCase, log)
 	notifHandler := handler.NewNotificationHandler(notifUseCase, log)
 	analyticsHandler := handler.NewAnalyticsHandler(analyticsUseCase, log)
+	collectorAppHandler := handler.NewCollectorApplicationHandler(collectorAppUseCase, log)
 
 	e := echo.New()
 
-	r := router.New(e, log, jwtService, authHandler, adminHandler, pickupHandler, reportHandler, rewardHandler, educationHandler, notifHandler, analyticsHandler)
+	r := router.New(e, log, jwtService, authHandler, adminHandler, pickupHandler, reportHandler, rewardHandler, educationHandler, notifHandler, analyticsHandler, collectorAppHandler)
 	r.Setup()
 
 	addr := fmt.Sprintf(":%s", cfg.Server.Port)
@@ -106,6 +109,7 @@ func runMigrations(db *gorm.DB, log *logrus.Logger) {
 		&models.EducationalContent{},
 		&models.Notification{},
 		&models.AuditLog{},
+		&models.CollectorApplication{},
 	); err != nil {
 		log.WithError(err).Fatal("failed to run database migrations")
 	}

@@ -58,7 +58,7 @@ func (r *RewardTransactionRepositoryImpl) Create(tx *models.RewardTransaction) e
 
 func (r *RewardTransactionRepositoryImpl) FindByUser(tenantID, userID uuid.UUID, page, perPage int) ([]models.RewardTransaction, int64, error) {
 	var transactions []models.RewardTransaction
-	query := r.db.Where("tenant_id = ? AND user_id = ?", tenantID, userID)
+	query := r.db.Model(&models.RewardTransaction{}).Where("tenant_id = ? AND user_id = ?", tenantID, userID)
 
 	param := helper.PaginationParam{Page: page, PerPage: perPage}
 	paginatedQuery, meta := helper.Paginate(query, param)

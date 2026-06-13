@@ -30,7 +30,7 @@ func (r *NotificationRepositoryImpl) FindByID(id uuid.UUID) (*models.Notificatio
 
 func (r *NotificationRepositoryImpl) FindByUser(tenantID, userID uuid.UUID, readFilter string, page, perPage int) ([]models.Notification, int64, error) {
 	var notifications []models.Notification
-	query := r.db.Where("tenant_id = ? AND user_id = ?", tenantID, userID)
+	query := r.db.Model(&models.Notification{}).Where("tenant_id = ? AND user_id = ?", tenantID, userID)
 
 	if readFilter == "unread" {
 		query = query.Where("is_read = ?", false)

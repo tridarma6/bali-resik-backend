@@ -37,6 +37,12 @@ func (h *NotificationHandler) List(c echo.Context) error {
 
 	var query request.ListNotificationQuery
 	c.Bind(&query)
+	if query.Page < 1 {
+		query.Page = 1
+	}
+	if query.PerPage < 1 || query.PerPage > 100 {
+		query.PerPage = 20
+	}
 
 	notifications, total, err := h.notifUseCase.ListNotifications(tenantID, userID, query)
 	if err != nil {

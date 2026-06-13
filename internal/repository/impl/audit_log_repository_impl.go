@@ -21,7 +21,7 @@ func (r *AuditLogRepositoryImpl) Create(log *models.AuditLog) error {
 
 func (r *AuditLogRepositoryImpl) FindByTenant(tenantID uuid.UUID, page, perPage int) ([]models.AuditLog, int64, error) {
 	var logs []models.AuditLog
-	query := r.db.Where("tenant_id = ?", tenantID)
+	query := r.db.Model(&models.AuditLog{}).Where("tenant_id = ?", tenantID)
 
 	param := helper.PaginationParam{Page: page, PerPage: perPage}
 	paginatedQuery, meta := helper.Paginate(query, param)

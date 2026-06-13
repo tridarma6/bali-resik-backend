@@ -74,8 +74,12 @@ func (h *PickupHandler) List(c echo.Context) error {
 	}
 
 	var query request.ListPickupQuery
-	if err := c.Bind(&query); err != nil {
-		query = request.ListPickupQuery{Page: 1, PerPage: 20}
+	c.Bind(&query)
+	if query.Page < 1 {
+		query.Page = 1
+	}
+	if query.PerPage < 1 || query.PerPage > 100 {
+		query.PerPage = 20
 	}
 
 	pickups, total, err := h.pickupUseCase.ListPickups(tenantID, query)
@@ -104,8 +108,12 @@ func (h *PickupHandler) ListMine(c echo.Context) error {
 	}
 
 	var query request.ListPickupQuery
-	if err := c.Bind(&query); err != nil {
-		query = request.ListPickupQuery{Page: 1, PerPage: 20}
+	c.Bind(&query)
+	if query.Page < 1 {
+		query.Page = 1
+	}
+	if query.PerPage < 1 || query.PerPage > 100 {
+		query.PerPage = 20
 	}
 
 	pickups, total, err := h.pickupUseCase.ListMyPickups(tenantID, userID, query)
@@ -134,8 +142,12 @@ func (h *PickupHandler) ListAssigned(c echo.Context) error {
 	}
 
 	var query request.ListPickupQuery
-	if err := c.Bind(&query); err != nil {
-		query = request.ListPickupQuery{Page: 1, PerPage: 20}
+	c.Bind(&query)
+	if query.Page < 1 {
+		query.Page = 1
+	}
+	if query.PerPage < 1 || query.PerPage > 100 {
+		query.PerPage = 20
 	}
 
 	pickups, total, err := h.pickupUseCase.ListCollectorPickups(tenantID, userID, query)

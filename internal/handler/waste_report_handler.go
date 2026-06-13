@@ -81,6 +81,12 @@ func (h *WasteReportHandler) List(c echo.Context) error {
 
 	var query request.ListReportQuery
 	c.Bind(&query)
+	if query.Page < 1 {
+		query.Page = 1
+	}
+	if query.PerPage < 1 || query.PerPage > 100 {
+		query.PerPage = 20
+	}
 
 	reports, total, err := h.reportUseCase.ListReports(tenantID, query)
 	if err != nil {
@@ -109,6 +115,12 @@ func (h *WasteReportHandler) ListMine(c echo.Context) error {
 
 	var query request.ListReportQuery
 	c.Bind(&query)
+	if query.Page < 1 {
+		query.Page = 1
+	}
+	if query.PerPage < 1 || query.PerPage > 100 {
+		query.PerPage = 20
+	}
 
 	reports, total, err := h.reportUseCase.ListMyReports(tenantID, userID, query)
 	if err != nil {

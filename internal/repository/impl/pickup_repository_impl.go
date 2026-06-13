@@ -36,7 +36,7 @@ func (r *PickupRepositoryImpl) FindByID(id uuid.UUID) (*models.PickupRequest, er
 
 func (r *PickupRepositoryImpl) FindByTenant(tenantID uuid.UUID, status string, page, perPage int) ([]models.PickupRequest, int64, error) {
 	var pickups []models.PickupRequest
-	query := r.db.Where("tenant_id = ?", tenantID)
+	query := r.db.Model(&models.PickupRequest{}).Where("tenant_id = ?", tenantID)
 
 	if status != "" {
 		query = query.Where("status = ?", status)
@@ -63,7 +63,7 @@ func (r *PickupRepositoryImpl) FindByTenant(tenantID uuid.UUID, status string, p
 
 func (r *PickupRepositoryImpl) FindByUser(tenantID, userID uuid.UUID, page, perPage int) ([]models.PickupRequest, int64, error) {
 	var pickups []models.PickupRequest
-	query := r.db.Where("tenant_id = ? AND user_id = ?", tenantID, userID)
+	query := r.db.Model(&models.PickupRequest{}).Where("tenant_id = ? AND user_id = ?", tenantID, userID)
 
 	param := helper.PaginationParam{
 		Page:    page,
@@ -85,7 +85,7 @@ func (r *PickupRepositoryImpl) FindByUser(tenantID, userID uuid.UUID, page, perP
 
 func (r *PickupRepositoryImpl) FindByCollector(tenantID, collectorID uuid.UUID, page, perPage int) ([]models.PickupRequest, int64, error) {
 	var pickups []models.PickupRequest
-	query := r.db.Where("tenant_id = ? AND collector_id = ?", tenantID, collectorID)
+	query := r.db.Model(&models.PickupRequest{}).Where("tenant_id = ? AND collector_id = ?", tenantID, collectorID)
 
 	param := helper.PaginationParam{
 		Page:    page,

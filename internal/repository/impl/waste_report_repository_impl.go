@@ -35,7 +35,7 @@ func (r *WasteReportRepositoryImpl) FindByID(id uuid.UUID) (*models.WasteReport,
 
 func (r *WasteReportRepositoryImpl) FindByTenant(tenantID uuid.UUID, status string, page, perPage int) ([]models.WasteReport, int64, error) {
 	var reports []models.WasteReport
-	query := r.db.Where("tenant_id = ?", tenantID)
+	query := r.db.Model(&models.WasteReport{}).Where("tenant_id = ?", tenantID)
 
 	if status != "" {
 		query = query.Where("status = ?", status)
@@ -59,7 +59,7 @@ func (r *WasteReportRepositoryImpl) FindByTenant(tenantID uuid.UUID, status stri
 
 func (r *WasteReportRepositoryImpl) FindByUser(tenantID, userID uuid.UUID, page, perPage int) ([]models.WasteReport, int64, error) {
 	var reports []models.WasteReport
-	query := r.db.Where("tenant_id = ? AND user_id = ?", tenantID, userID)
+	query := r.db.Model(&models.WasteReport{}).Where("tenant_id = ? AND user_id = ?", tenantID, userID)
 
 	param := helper.PaginationParam{Page: page, PerPage: perPage}
 	paginatedQuery, meta := helper.Paginate(query, param)

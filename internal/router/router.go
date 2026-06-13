@@ -13,17 +13,18 @@ import (
 )
 
 type Router struct {
-	e                 *echo.Echo
-	log               *logrus.Logger
-	jwtService        auth.JWTService
-	authHandler       *handler.AuthHandler
-	adminHandler      *handler.AdminHandler
-	pickupHandler     *handler.PickupHandler
-	reportHandler     *handler.WasteReportHandler
-	rewardHandler     *handler.RewardHandler
-	educationHandler  *handler.EducationHandler
-	notifHandler      *handler.NotificationHandler
-	analyticsHandler  *handler.AnalyticsHandler
+	e                    *echo.Echo
+	log                  *logrus.Logger
+	jwtService           auth.JWTService
+	authHandler          *handler.AuthHandler
+	adminHandler         *handler.AdminHandler
+	pickupHandler        *handler.PickupHandler
+	reportHandler        *handler.WasteReportHandler
+	rewardHandler        *handler.RewardHandler
+	educationHandler     *handler.EducationHandler
+	notifHandler         *handler.NotificationHandler
+	analyticsHandler     *handler.AnalyticsHandler
+	collectorAppHandler  *handler.CollectorApplicationHandler
 
 	authMW        *middleware.AuthMiddleware
 }
@@ -40,20 +41,22 @@ func New(
 	educationHandler *handler.EducationHandler,
 	notifHandler *handler.NotificationHandler,
 	analyticsHandler *handler.AnalyticsHandler,
+	collectorAppHandler *handler.CollectorApplicationHandler,
 ) *Router {
 	return &Router{
-		e:                e,
-		log:              log,
-		jwtService:       jwtService,
-		authHandler:      authHandler,
-		adminHandler:     adminHandler,
-		pickupHandler:    pickupHandler,
-		reportHandler:    reportHandler,
-		rewardHandler:    rewardHandler,
-		educationHandler: educationHandler,
-		notifHandler:     notifHandler,
-		analyticsHandler: analyticsHandler,
-		authMW:           middleware.NewAuthMiddleware(jwtService, log),
+		e:                   e,
+		log:                 log,
+		jwtService:          jwtService,
+		authHandler:         authHandler,
+		adminHandler:        adminHandler,
+		pickupHandler:       pickupHandler,
+		reportHandler:       reportHandler,
+		rewardHandler:       rewardHandler,
+		educationHandler:    educationHandler,
+		notifHandler:        notifHandler,
+		analyticsHandler:    analyticsHandler,
+		collectorAppHandler: collectorAppHandler,
+		authMW:              middleware.NewAuthMiddleware(jwtService, log),
 	}
 }
 
@@ -87,6 +90,7 @@ func (r *Router) Setup() {
 	r.setupEducationRoutes()
 	r.setupNotificationRoutes()
 	r.setupAnalyticsRoutes()
+	r.setupCollectorApplicationRoutes()
 }
 
 func (r *Router) setupAuthRoutes() {
@@ -109,6 +113,21 @@ func (r *Router) setupAdminRoutes() {
 	admin.POST("/tenants", r.adminHandler.CreateTenant)
 	admin.GET("/tenants", r.adminHandler.ListTenants)
 	admin.POST("/admins", r.adminHandler.CreateAdmin)
+
+	adminCollectorApps := r.e.Group("/api/v1/admin/collector-applications")
+	adminCollectorApps.Use(r.authMW.Authenticate)
+	adminCollectorApps.Use(middleware.RequireRoles("admin_kabupaten", "super_admin"))
+	adminCollectorApps.GET("", r.collectorAppHandler.ListAll)
+	adminCollectorApps.PUT("/:id/approve", r.collectorAppHandler.Approve)
+	adminCollectorApps.PUT("/:id/reject", r.collectorAppHandler.Reject)
+}
+
+func (r *Router) setupCollectorApplicationRoutes() {
+	apps := r.e.Group("/api/v1/collector-applications")
+	apps.Use(r.authMW.Authenticate)
+
+	apps.POST("", r.collectorAppHandler.Submit)
+	apps.GET("/mine", r.collectorAppHandler.ListMine)
 }
 
 func (r *Router) setupPickupRoutes() {

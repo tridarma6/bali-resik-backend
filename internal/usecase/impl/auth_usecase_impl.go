@@ -150,8 +150,17 @@ func (uc *AuthUseCaseImpl) generateAuthResponse(user *models.User, tenantID uuid
 	primaryRole := "citizen"
 	for _, role := range roles {
 		roleNames = append(roleNames, role.Name)
-		if role.Name == "super_admin" || role.Name == "admin_kabupaten" {
-			primaryRole = role.Name
+		switch role.Name {
+		case "super_admin":
+			primaryRole = "super_admin"
+		case "admin_kabupaten":
+			if primaryRole != "super_admin" {
+				primaryRole = "admin_kabupaten"
+			}
+		case "collector":
+			if primaryRole != "super_admin" && primaryRole != "admin_kabupaten" {
+				primaryRole = "collector"
+			}
 		}
 	}
 

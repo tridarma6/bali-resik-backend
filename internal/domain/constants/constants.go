@@ -34,6 +34,10 @@ const (
 
 	RegionTypeKota      = "kota"
 	RegionTypeKabupaten = "kabupaten"
+
+	AppStatusPending  = "pending"
+	AppStatusApproved = "approved"
+	AppStatusRejected = "rejected"
 )
 
 var ValidWasteTypes = []string{
