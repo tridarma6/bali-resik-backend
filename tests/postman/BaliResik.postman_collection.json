@@ -1,0 +1,1852 @@
+{
+  "info": {
+    "name": "Bali Resik API",
+    "description": "Complete API test collection for Bali Resik - Multi-tenant E-Government waste management platform\n\n## Setup\n1. Import collection + environment into Postman\n2. Ensure server is running on {{base_url}}\n3. Run collection (suggested order) or individual folders\n\n## Auth Flow\n- `1_Auth/Login Super Admin` saves tokens automatically\n- All subsequent requests use `{{access_token}}` from the collection variables\n- Chained IDs (`pickup_id`, `report_id`, etc.) are extracted from create responses",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "bali-resik"
+  },
+  "variable": [
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refresh_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "pickup_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "report_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "reward_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "content_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "notification_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "citizen_access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "collector_access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "admin_access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "collector_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tenant_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "0_Health",
+      "description": "Basic connectivity checks",
+      "item": [
+        {
+          "name": "Health Check",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Status is ok', () => pm.response.json().status === 'ok');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            }
+          }
+        },
+        {
+          "name": "404 Not Found",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Success is false', () => pm.response.json().success === false);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/nonexistent",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "nonexistent"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "1_Auth",
+      "description": "Authentication & Authorization flows",
+      "item": [
+        {
+          "name": "Register Citizen",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Success is true', () => pm.response.json().success === true);",
+                  "pm.test('Has access_token', () => pm.response.json().data.access_token !== undefined);",
+                  "pm.test('Has refresh_token', () => pm.response.json().data.refresh_token !== undefined);",
+                  "",
+                  "var jsonData = pm.response.json().data;",
+                  "pm.collectionVariables.set('citizen_access_token', jsonData.access_token);",
+                  "pm.collectionVariables.set('refresh_token', jsonData.refresh_token);",
+                  "pm.environment.set('citizen_email', jsonData.user.email);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{citizen_email}}\",\n  \"password\": \"{{citizen_password}}\",\n  \"full_name\": \"Test Citizen User\",\n  \"phone\": \"081234567890\",\n  \"tenant_slug\": \"{{tenant_slug}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Register Duplicate Email",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 409', () => pm.response.to.have.status(409));",
+                  "pm.test('Error code is EMAIL_EXISTS', () => pm.response.json().error.code === 'EMAIL_EXISTS');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{citizen_email}}\",\n  \"password\": \"{{citizen_password}}\",\n  \"full_name\": \"Test Citizen User\",\n  \"tenant_slug\": \"{{tenant_slug}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Login Citizen",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has access_token', () => pm.response.json().data.access_token !== undefined);",
+                  "var jsonData = pm.response.json().data;",
+                  "pm.collectionVariables.set('citizen_access_token', jsonData.access_token);",
+                  "pm.collectionVariables.set('refresh_token', jsonData.refresh_token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{citizen_email}}\",\n  \"password\": \"{{citizen_password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Login Wrong Password",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Error code is INVALID_CREDENTIALS', () => pm.response.json().error.code === 'INVALID_CREDENTIALS');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{citizen_email}}\",\n  \"password\": \"wrongpassword123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has new access_token', () => pm.response.json().data.access_token !== undefined);",
+                  "var jsonData = pm.response.json().data;",
+                  "pm.collectionVariables.set('citizen_access_token', jsonData.access_token);",
+                  "pm.collectionVariables.set('refresh_token', jsonData.refresh_token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh_token\": \"{{refresh_token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/refresh",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "refresh"]
+            }
+          }
+        },
+        {
+          "name": "Access Protected Route Without Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Success is false', () => pm.response.json().success === false);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/pickups/mine",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "pickups", "mine"]
+            }
+          }
+        },
+        {
+          "name": "Register Collector (via Admin)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "pm.collectionVariables.set('collector_email', 'collector_' + Date.now() + '@test.com');"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "var jsonData = pm.response.json().data;",
+                  "pm.collectionVariables.set('collector_id', jsonData.id);",
+                  "pm.collectionVariables.set('collector_email', jsonData.email);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{collector_email}}\",\n  \"password\": \"{{collector_password}}\",\n  \"full_name\": \"Test Collector\",\n  \"tenant_id\": \"{{tenant_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/users/collector",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "users", "collector"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2_SuperAdmin",
+      "description": "Super Admin management endpoints",
+      "item": [
+        {
+          "name": "Login Super Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "var jsonData = pm.response.json().data;",
+                  "pm.collectionVariables.set('access_token', jsonData.access_token);",
+                  "pm.collectionVariables.set('refresh_token', jsonData.refresh_token);",
+                  "if(jsonData.user && jsonData.user.roles) {",
+                  "  pm.test('Has super_admin role', () => jsonData.user.roles.includes('super_admin'));",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{super_admin_email}}\",\n  \"password\": \"{{super_admin_password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "List Tenants",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns array of tenants', () => Array.isArray(pm.response.json().data));",
+                  "pm.test('Has at least 9 tenants', () => pm.response.json().data.length >= 9);",
+                  "var tenantId = pm.response.json().data[0].id;",
+                  "pm.collectionVariables.set('tenant_id', tenantId);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/tenants",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "tenants"]
+            }
+          }
+        },
+        {
+          "name": "Create Tenant",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Has tenant name', () => pm.response.json().data.name === 'Test Kabupaten');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test Kabupaten\",\n  \"slug\": \"test-kabupaten\",\n  \"region_type\": \"kabupaten\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/tenants",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "tenants"]
+            }
+          }
+        },
+        {
+          "name": "Create Duplicate Tenant Slug",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 409', () => pm.response.to.have.status(409));",
+                  "pm.test('Error code is SLUG_EXISTS', () => pm.response.json().error.code === 'SLUG_EXISTS');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test Kabupaten\",\n  \"slug\": \"test-kabupaten\",\n  \"region_type\": \"kabupaten\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/tenants",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "tenants"]
+            }
+          }
+        },
+        {
+          "name": "Create Admin Kabupaten",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "pm.collectionVariables.set('admin_kabupaten_email', 'admin_' + Date.now() + '@test.com');"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Has admin role', () => pm.response.json().data.roles.includes('admin_kabupaten'));",
+                  "pm.collectionVariables.set('admin_kabupaten_email', pm.response.json().data.email);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{admin_kabupaten_email}}\",\n  \"password\": \"{{admin_kabupaten_password}}\",\n  \"full_name\": \"Test Admin Kabupaten\",\n  \"tenant_id\": \"{{tenant_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/admins",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "admins"]
+            }
+          }
+        },
+        {
+          "name": "Citizen Cannot Access Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 403', () => pm.response.to.have.status(403));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{citizen_access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/tenants",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "tenants"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3_Pickup",
+      "description": "Waste pickup request flows",
+      "item": [
+        {
+          "name": "Create Pickup (Citizen)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Status is pending', () => pm.response.json().data.status === 'pending');",
+                  "pm.test('Has waste_type', () => pm.response.json().data.waste_type === 'organic');",
+                  "var pickupId = pm.response.json().data.id;",
+                  "pm.collectionVariables.set('pickup_id', pickupId);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{citizen_access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"waste_type\": \"organic\",\n  \"latitude\": -8.6500,\n  \"longitude\": 115.2167,\n  \"address\": \"Jl. Raya Puputan No. 1, Denpasar\",\n  \"notes\": \"Test pickup request\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/pickups",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "pickups"]
+            }
+          }
+        },
+        {
+          "name": "Create Pickup Invalid Waste Type",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Error code is VALIDATION_ERROR', () => pm.response.json().error.code === 'VALIDATION_ERROR');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{citizen_access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"waste_type\": \"invalid_type\",\n  \"latitude\": -8.6500,\n  \"longitude\": 115.2167,\n  \"address\": \"Test address\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/pickups",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "pickups"]
+            }
+          }
+        },
+        {
+          "name": "List My Pickups (Citizen)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Is paginated', () => pm.response.json().meta !== undefined);",
+                  "pm.test('Has data array', () => Array.isArray(pm.response.json().data));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{citizen_access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/pickups/mine",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "pickups", "mine"]
+            }
+          }
+        },
+        {
+          "name": "Login Admin Kabupaten",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "var jsonData = pm.response.json().data;",
+                  "pm.collectionVariables.set('admin_access_token', jsonData.access_token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{admin_kabupaten_email}}\",\n  \"password\": \"{{admin_kabupaten_password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Admin List All Pickups",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has pagination', () => pm.response.json().meta !== undefined);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/pickups",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "pickups"]
+            }
+          }
+        },
+        {
+          "name": "Get Pickup By ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('ID matches', () => pm.response.json().data.id === pm.collectionVariables.get('pickup_id'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{citizen_access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/pickups/{{pickup_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "pickups", "{{pickup_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Get Invalid Pickup ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{citizen_access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/pickups/invalid-uuid",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "pickups", "invalid-uuid"]
+            }
+          }
+        },
+        {
+          "name": "Assign Collector to Pickup",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Status is assigned', () => pm.response.json().data.status === 'assigned');",
+                  "pm.test('Has collector', () => pm.response.json().data.collector !== null);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{admin_access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"collector_id\": \"{{collector_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/pickups/{{pickup_id}}/assign",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "pickups", "{{pickup_id}}", "assign"]
+            }
+          }
+        },
+        {
+          "name": "Login Collector",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "var jsonData = pm.response.json().data;",
+                  "pm.collectionVariables.set('collector_access_token', jsonData.access_token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{collector_email}}\",\n  \"password\": \"{{collector_password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Collector List Assigned Pickups",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has pagination', () => pm.response.json().meta !== undefined);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{collector_access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/pickups/assigned",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "pickups", "assigned"]
+            }
+          }
+        },
+        {
+          "name": "Collector Start Pickup (in_progress)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Status is in_progress', () => pm.response.json().data.status === 'in_progress');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{collector_access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"in_progress\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/pickups/{{pickup_id}}/status",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "pickups", "{{pickup_id}}", "status"]
+            }
+          }
+        },
+        {
+          "name": "Collector Complete Pickup",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Status is completed', () => pm.response.json().data.status === 'completed');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{collector_access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"completed\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/pickups/{{pickup_id}}/status",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "pickups", "{{pickup_id}}", "status"]
+            }
+          }
+        },
+        {
+          "name": "Invalid Status Transition",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Code is INVALID_TRANSITION', () => pm.response.json().error.code === 'INVALID_TRANSITION');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{collector_access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"pending\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/pickups/{{pickup_id}}/status",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "pickups", "{{pickup_id}}", "status"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4_Report",
+      "description": "Illegal waste reporting flows",
+      "item": [
+        {
+          "name": "Citizen Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "var jsonData = pm.response.json().data;",
+                  "pm.collectionVariables.set('citizen_access_token', jsonData.access_token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{citizen_email}}\",\n  \"password\": \"{{citizen_password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Create Waste Report",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Status is reported', () => pm.response.json().data.status === 'reported');",
+                  "var reportId = pm.response.json().data.id;",
+                  "pm.collectionVariables.set('report_id', reportId);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{citizen_access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"latitude\": -8.6500,\n  \"longitude\": 115.2167,\n  \"description\": \"Illegal waste dumping at the riverbank near the market. Large pile of mixed waste.\",\n  \"severity\": \"high\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/reports",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "reports"]
+            }
+          }
+        },
+        {
+          "name": "List My Reports",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has pagination', () => pm.response.json().meta !== undefined);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{citizen_access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/reports/mine",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "reports", "mine"]
+            }
+          }
+        },
+        {
+          "name": "Find Nearby Reports",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns array', () => Array.isArray(pm.response.json().data));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{citizen_access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/reports/nearby?lat=-8.65&lng=115.22&radius=5",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "reports", "nearby"],
+              "query": [
+                { "key": "lat", "value": "-8.65" },
+                { "key": "lng", "value": "115.22" },
+                { "key": "radius", "value": "5" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Admin Verify Report",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Status is verified', () => pm.response.json().data.status === 'verified');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{admin_access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"verified\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/reports/{{report_id}}/status",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "reports", "{{report_id}}", "status"]
+            }
+          }
+        },
+        {
+          "name": "Admin Mark Cleaning",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Status is cleaning', () => pm.response.json().data.status === 'cleaning');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{admin_access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"cleaning\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/reports/{{report_id}}/status",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "reports", "{{report_id}}", "status"]
+            }
+          }
+        },
+        {
+          "name": "Admin Resolve Report",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Status is resolved', () => pm.response.json().data.status === 'resolved');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{admin_access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"resolved\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/reports/{{report_id}}/status",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "reports", "{{report_id}}", "status"]
+            }
+          }
+        },
+        {
+          "name": "Invalid Report Transition",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Code is INVALID_TRANSITION', () => pm.response.json().error.code === 'INVALID_TRANSITION');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{admin_access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"reported\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/reports/{{report_id}}/status",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "reports", "{{report_id}}", "status"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5_Reward",
+      "description": "Reward and points system flows",
+      "item": [
+        {
+          "name": "Admin Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "var jsonData = pm.response.json().data;",
+                  "pm.collectionVariables.set('admin_access_token', jsonData.access_token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{admin_kabupaten_email}}\",\n  \"password\": \"{{admin_kabupaten_password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Create Reward",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Has reward name', () => pm.response.json().data.name !== undefined);",
+                  "var rewardId = pm.response.json().data.id;",
+                  "pm.collectionVariables.set('reward_id', rewardId);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{admin_access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Eco-Friendly Tote Bag\",\n  \"description\": \"Reusable shopping bag made from recycled materials\",\n  \"points_cost\": 100,\n  \"stock\": 50\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/rewards",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "rewards"]
+            }
+          }
+        },
+        {
+          "name": "List Rewards",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns array', () => Array.isArray(pm.response.json().data));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{citizen_access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/rewards",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "rewards"]
+            }
+          }
+        },
+        {
+          "name": "Get My Points (0 points)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has total_points', () => pm.response.json().data.total_points !== undefined);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{citizen_access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/rewards/points",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "rewards", "points"]
+            }
+          }
+        },
+        {
+          "name": "Redeem (Insufficient Points)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Error code is INSUFFICIENT_POINTS', () => pm.response.json().error.code === 'INSUFFICIENT_POINTS');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{citizen_access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reward_id\": \"{{reward_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/rewards/redeem",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "rewards", "redeem"]
+            }
+          }
+        },
+        {
+          "name": "Get Transaction History",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has pagination', () => pm.response.json().meta !== undefined);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{citizen_access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/rewards/transactions",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "rewards", "transactions"]
+            }
+          }
+        },
+        {
+          "name": "Update Reward",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Name updated', () => pm.response.json().data.name === 'Premium Eco Bag (Updated)');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{admin_access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Premium Eco Bag (Updated)\",\n  \"points_cost\": 150,\n  \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/rewards/{{reward_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "rewards", "{{reward_id}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6_Education",
+      "description": "Educational content flows",
+      "item": [
+        {
+          "name": "Admin Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "var jsonData = pm.response.json().data;",
+                  "pm.collectionVariables.set('admin_access_token', jsonData.access_token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{admin_kabupaten_email}}\",\n  \"password\": \"{{admin_kabupaten_password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Create Content",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Has title', () => pm.response.json().data.title === 'Cara Memilah Sampah Rumah Tangga');",
+                  "var contentId = pm.response.json().data.id;",
+                  "pm.collectionVariables.set('content_id', contentId);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{admin_access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Cara Memilah Sampah Rumah Tangga\",\n  \"content\": \"Panduan lengkap cara memilah sampah organik dan anorganik di rumah. Dengan memilah sampah, kita dapat mengurangi volume sampah yang berakhir di TPA.\",\n  \"content_type\": \"article\",\n  \"category\": \"waste_sorting\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/education",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "education"]
+            }
+          }
+        },
+        {
+          "name": "List Content",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns array', () => Array.isArray(pm.response.json().data));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{citizen_access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/education",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "education"]
+            }
+          }
+        },
+        {
+          "name": "Get Content By ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('ID matches', () => pm.response.json().data.id === pm.collectionVariables.get('content_id'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{citizen_access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/education/{{content_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "education", "{{content_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Content",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Is published', () => pm.response.json().data.is_published === true);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{admin_access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Cara Memilah Sampah Rumah Tangga (Updated)\",\n  \"is_published\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/education/{{content_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "education", "{{content_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete Content",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Success is true', () => pm.response.json().success === true);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/education/{{content_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "education", "{{content_id}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7_Notification",
+      "description": "Notification module flows",
+      "item": [
+        {
+          "name": "List Notifications",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has pagination', () => pm.response.json().meta !== undefined);",
+                  "var data = pm.response.json().data;",
+                  "if(data && data.length > 0) {",
+                  "  pm.collectionVariables.set('notification_id', data[0].id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{citizen_access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/notifications",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "notifications"]
+            }
+          }
+        },
+        {
+          "name": "Unread Count",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has count', () => pm.response.json().data.count !== undefined);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{citizen_access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/notifications/unread-count",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "notifications", "unread-count"]
+            }
+          }
+        },
+        {
+          "name": "Mark All As Read",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{citizen_access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/notifications/read-all",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "notifications", "read-all"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "8_Analytics",
+      "description": "Analytics and dashboard endpoints",
+      "item": [
+        {
+          "name": "Admin Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "var jsonData = pm.response.json().data;",
+                  "pm.collectionVariables.set('admin_access_token', jsonData.access_token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{admin_kabupaten_email}}\",\n  \"password\": \"{{admin_kabupaten_password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Dashboard (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has overview', () => pm.response.json().data.overview !== undefined);",
+                  "pm.test('Has total_pickups', () => pm.response.json().data.overview.total_pickups !== undefined);",
+                  "pm.test('Has pickup_trends', () => Array.isArray(pm.response.json().data.pickup_trends));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/analytics/dashboard",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "analytics", "dashboard"]
+            }
+          }
+        },
+        {
+          "name": "Regional Stats (Super Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns array of regions', () => Array.isArray(pm.response.json().data));",
+                  "pm.test('Has tenant_name field', () => pm.response.json().data[0].tenant_name !== undefined);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/regional-stats",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "regional-stats"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "9_Cleanup",
+      "description": "Cleanup test data",
+      "item": [
+        {
+          "name": "Delete Created Content",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/education/{{content_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "education", "{{content_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete Reward",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/rewards/{{reward_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "rewards", "{{reward_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete Test Tenant",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/tenants/test-kabupaten",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "tenants", "test-kabupaten"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
