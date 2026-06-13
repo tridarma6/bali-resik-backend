@@ -1,6 +1,8 @@
 package router
 
 import (
+	"time"
+
 	"github.com/labstack/echo/v4"
 	echomw "github.com/labstack/echo/v4/middleware"
 	"github.com/sirupsen/logrus"
@@ -56,13 +58,20 @@ func New(
 }
 
 func (r *Router) Setup() {
+	rateLimiter := middleware.NewRateLimiter(100, time.Minute)
+	auditMW := middleware.NewAuditMiddleware(r.log)
+
 	r.e.Use(echomw.RequestID())
 	r.e.Use(echomw.Secure())
 	r.e.Use(middleware.CORSConfig())
 	r.e.Use(echomw.Recover())
+	r.e.Use(rateLimiter.RateLimit)
+	r.e.Use(auditMW.AuditLog)
 	r.e.Use(echomw.LoggerWithConfig(echomw.LoggerConfig{
 		Format: "method=${method}, uri=${uri}, status=${status}, latency=${latency_human}\n",
 	}))
+
+	SetupSwagger(r.e)
 
 	r.e.GET("/health", func(c echo.Context) error {
 		return c.JSON(200, map[string]interface{}{

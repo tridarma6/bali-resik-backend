@@ -23,6 +23,17 @@ func NewAuthHandler(authUseCase ucase.AuthUseCase, log *logrus.Logger) *AuthHand
 	}
 }
 
+// Register creates a new citizen account
+// @Summary      Register new citizen
+// @Description  Register a new citizen user for a specific tenant region. Assigns "citizen" role by default.
+// @Tags         Authentication
+// @Accept       json
+// @Produce      json
+// @Param        request body request.RegisterRequest true "Registration details"
+// @Success      201  {object}  helper.APIResponse
+// @Failure      400  {object}  helper.ErrorResponse
+// @Failure      409  {object}  helper.ErrorResponse
+// @Router       /auth/register [post]
 func (h *AuthHandler) Register(c echo.Context) error {
 	var req request.RegisterRequest
 	if err := helper.ValidateRequest(c, &req); err != nil {

@@ -105,6 +105,7 @@ func runMigrations(db *gorm.DB, log *logrus.Logger) {
 		&models.RewardTransaction{},
 		&models.EducationalContent{},
 		&models.Notification{},
+		&models.AuditLog{},
 	); err != nil {
 		log.WithError(err).Fatal("failed to run database migrations")
 	}
